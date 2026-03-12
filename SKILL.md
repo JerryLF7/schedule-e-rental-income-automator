@@ -1,90 +1,53 @@
 ---
-name: schedule-e-rental-income
-description: Use this skill to extract rental-property figures from IRS Schedule E forms and produce a filled rental income Excel worksheet using the bundled template while preserving existing formulas.
+name: schedule-e-rental-income-automator
+description: Extract rental-property values from IRS Schedule E forms and produce a filled rental income Excel worksheet using the bundled template while preserving formulas and formatting. Use when the user wants Schedule E figures converted into worksheet-ready JSON or directly written into the rental income workbook, including multi-property Schedule E pages.
 ---
 
-# Schedule E Rental Income
+# Schedule E Rental Income Automator
 
-Use this skill when the user wants a completed rental income worksheet, not just extracted numbers.
+Use this skill to turn one or more IRS Schedule E pages into worksheet-ready JSON and, when the extracted values are reliable enough, a completed Excel workbook.
 
-Your default goal is to produce and return a filled Excel file.
+Default to returning a filled workbook, not just extracted numbers.
 
-If the skill package includes `template.xlsx`, treat it as the default worksheet template automatically. Do not ask the user to upload a separate worksheet unless:
-- `template.xlsx` is missing
-- the user explicitly wants a different worksheet
-- the bundled template cannot be used
+## Workflow
 
-When this skill is active, follow these steps in order:
+1. Read `references/extraction_prompt.md` and extract one property record per rental in source order.
+2. Read `references/reference.md` and validate the worksheet mapping and business rules.
+3. Compute `months_in_service` with these rules:
+   - `365` or `366` -> `12`
+   - blank or missing fair-rental days -> `12`
+   - any other numeric value -> `round(days / 30, 1)`
+4. Keep JSON numeric fields numeric.
+5. Set unclear, missing, or unsupported fields to `null` instead of guessing.
+6. If required values are missing, confidence is low, or the form is materially ambiguous, ask for confirmation before writing the workbook.
+7. Otherwise, write the confirmed JSON into `assets/template.xlsx` with `scripts/write_excel.py` and return the completed workbook.
 
-1. Read the Schedule E document and identify each rental property in source order.
-2. Extract the required values for each property.
-3. Convert fair rental days into months in service:
-   - `365` -> `12`
-   - `366` -> `12`
-   - any other numeric value -> `fair_rental_days / 30`
-4. Build the worksheet JSON payload for all properties.
-5. If required values are missing, unclear, contradictory, or confidence is low, ask the user for review before writing.
-6. Otherwise, immediately use `scripts/write_excel.py` with `template.xlsx` to generate the completed workbook.
-7. Return the completed Excel file to the user as the final output.
+## Operating Rules
 
-Read `extraction_prompt.md` before extracting data.
-Read `reference.md` before writing values into the worksheet.
-
-## Default Execution Rule
-
-Do not stop after producing JSON if the extracted data is sufficient to fill the worksheet.
-
-If all required values are available and there is no material ambiguity, continue automatically to workbook generation and return the filled Excel file.
-
-JSON is an intermediate artifact, not the final deliverable, unless the user explicitly asks for JSON only.
-
-## Required Data
-
-For each property, extract:
-
-- property address
-- fair rental days
-- months in service
-- rents received
-- total expenses
-- insurance
-- mortgage interest
-- taxes
-- depreciation
-- HOA dues, only if explicitly identified
-- extraordinary expense, only if explicitly supported
-
-If multiple properties are present, preserve A/B/C order from Schedule E and fill worksheet rental-unit columns from left to right in that same order.
-
-## Template Rule
-
-Assume `template.xlsx` inside the skill package is the default workbook to use.
-
-Do not ask the user for a worksheet/template if `template.xlsx` is available and the user did not request a different workbook.
-
-## Output Rule
-
-The normal output of this skill is:
-1. a filled Excel workbook based on `template.xlsx`
-2. returned to the user as a downloadable file
-
-Do not treat a filesystem path alone as the final user-facing result when the environment supports returning the actual file.
-
-## Guidelines
-
-- Preserve worksheet formulas, formatting, labels, and existing structure.
-- Write only to user-input cells defined in `reference.md`.
-- Do not infer HOA dues from generic "other" expenses.
+- Preserve property order exactly as shown across all Schedule E pages.
+- Fill worksheet columns from left to right in that same order.
+- Preserve formulas, formatting, labels, and untouched cells.
+- Write only to the mapped input cells from `references/reference.md`.
+- Do not infer HOA dues from generic expenses.
 - Do not infer extraordinary expense without explicit support.
-- Use `null` for unsupported or unreadable fields instead of guessing.
-- If the number of properties exceeds the available worksheet columns, stop and report the issue.
-- If the workbook is successfully generated, return it immediately to the user.
-- Only ask a follow-up question when ambiguity prevents a reliable worksheet output.
-- Do not ask whether to proceed to Excel generation if the extracted values are already sufficient.
+- If the worksheet does not have enough property columns, stop and report it.
+- Treat JSON as an intermediate artifact unless the user explicitly asks for JSON only.
 
-## Examples
+## Bundled Files
 
-- User uploads a Schedule E PDF and wants the worksheet completed.
-- User provides a scanned Schedule E and expects a finished Excel file as output.
-- User provides a multi-property Schedule E and wants each property filled into separate rental-unit columns.
-- User asks for JSON only; in that case, return JSON and do not generate Excel unless requested.
+- `references/extraction_prompt.md` — extraction prompt and JSON schema
+- `references/reference.md` — worksheet mapping and business rules
+- `assets/template.xlsx` — default worksheet template
+- `scripts/write_excel.py` — writes JSON into Excel without overwriting formulas
+
+## Execution Rule
+
+If the required values are readable and validation passes, continue straight to workbook generation. Do not stop after producing JSON unless the user asked for JSON only.
+
+Run:
+
+```bash
+python scripts/write_excel.py <input_json> assets/template.xlsx <output.xlsx>
+```
+
+Use `--force` when the JSON was already reviewed and you want non-interactive execution despite low confidence or validation warnings.

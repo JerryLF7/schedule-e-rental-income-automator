@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 """
-Python script to write rental property data from JSON to an Excel template.
-Preserves existing formulas in the template.
+Write rental property data from JSON into a bundled Excel template.
+Preserve existing formulas and formatting.
 
 Usage:
-    python write_excel.py <input_json_path> <template_excel_path> <output_excel_path>
+    python write_excel.py <input_json_path> <template_excel_path> <output_excel_path> [--force]
 """
 
-import sys
+import argparse
 import json
+import sys
 from pathlib import Path
 
 try:
@@ -18,160 +19,161 @@ except ImportError:
     sys.exit(1)
 
 
+ROW_MAPPING = {
+    "address": 6,
+    "months_in_service": 9,
+    "rents_received": 12,
+    "total_expenses": 13,
+    "insurance": 14,
+    "mortgage_interest": 15,
+    "taxes": 16,
+    "hoa_dues": 17,
+    "depreciation": 18,
+    "extraordinary_expense": 19,
+}
+
+FORMULA_ROWS = {20, 21, 22}
+MAX_PROPERTY_COUNT = 10  # Columns F:O
+
+
 def get_column_letter(property_index: int) -> str:
-    """
-    Get the Excel column letter for a given property index.
-    Property 1 -> F, Property 2 -> G, ..., Property 10 -> O
-    """
-    # Column F is the 6th column (0-indexed: 5)
-    # Property index starts from 1
-    column_index = 5 + (property_index - 1)  # 0-indexed: F=5, G=6, H=7, ...
-    
-    # Maximum column is O (15th column, 0-indexed: 14)
-    if column_index > 14:
-        raise ValueError(f"Maximum of 10 properties supported (columns F-O). Property {property_index} exceeds limit.")
-    
-    # Convert to Excel column letter
+    """Map property 1..10 to Excel columns F..O."""
+    if property_index < 1:
+        raise ValueError(f"Property index must be >= 1, got {property_index}.")
+    if property_index > MAX_PROPERTY_COUNT:
+        raise ValueError(
+            f"Maximum of {MAX_PROPERTY_COUNT} properties supported (columns F-O). "
+            f"Property {property_index} exceeds limit."
+        )
+
+    column_number = 5 + property_index  # F=6 in 1-indexed Excel numbering
     result = ""
-    while column_index >= 0:
-        result = chr(65 + (column_index % 26)) + result
-        column_index = column_index // 26 - 1
-    
+    while column_number:
+        column_number, remainder = divmod(column_number - 1, 26)
+        result = chr(65 + remainder) + result
     return result
 
 
-def prompt_continue_low_confidence(properties: list) -> bool:
-    """Ask user if they want to continue despite low confidence scores."""
-    print("\n⚠️  Warning: Some properties have confidence scores below 0.85:")
-    for prop in properties:
-        if prop.get("confidence", 1.0) < 0.85:
-            addr = prop.get("address", "Unknown")
-            conf = prop.get("confidence", 0.0)
-            print(f"  - {addr}: {conf:.2f}")
-    
+def prompt_yes_no(message: str) -> bool:
     while True:
-        response = input("\nDo you want to continue? (y/n): ").strip().lower()
-        if response == 'y':
+        response = input(f"\n{message} (y/n): ").strip().lower()
+        if response == "y":
             return True
-        elif response == 'n':
+        if response == "n":
             return False
-        else:
-            print("Please enter 'y' or 'n'")
+        print("Please enter 'y' or 'n'.")
 
 
-def write_json_to_excel(json_path: str, template_path: str, output_path: str) -> None:
-    """
-    Read JSON data and write it to an Excel template.
-    
-    Args:
-        json_path: Path to input JSON file
-        template_path: Path to Excel template file
-        output_path: Path to save the output Excel file
-    """
-    # Validate input file exists
-    json_file = Path(json_path)
-    if not json_file.exists():
-        raise FileNotFoundError(f"Input JSON file not found: {json_path}")
-    
-    template_file = Path(template_path)
-    if not template_file.exists():
-        raise FileNotFoundError(f"Template Excel file not found: {template_path}")
-    
-    # Load JSON data
-    with open(json_file, 'r', encoding='utf-8') as f:
-        data = json.load(f)
-    
-    # Validate JSON structure
-    if "properties" not in data:
-        raise ValueError("JSON must contain 'properties' array")
-    if "validation" not in data:
-        raise ValueError("JSON must contain 'validation' object")
-    
+def validate_payload(data: dict) -> tuple[list, dict]:
+    if "properties" not in data or not isinstance(data["properties"], list):
+        raise ValueError("JSON must contain a 'properties' array.")
+    if "validation" not in data or not isinstance(data["validation"], dict):
+        raise ValueError("JSON must contain a 'validation' object.")
+
     properties = data["properties"]
     validation = data["validation"]
-    
-    # Check validation status
+    if not properties:
+        raise ValueError("JSON contains no properties to write.")
+
+    return properties, validation
+
+
+def confirm_warnings(properties: list, validation: dict, force: bool) -> None:
+    warnings = []
+
     if not validation.get("passed", False):
-        notes = validation.get("notes", "Validation failed")
-        print(f"❌ Validation failed: {notes}")
-        sys.exit(1)
-    
-    # Check confidence scores
-    low_confidence_exists = any(prop.get("confidence", 1.0) < 0.85 for prop in properties)
-    if low_confidence_exists:
-        if not prompt_continue_low_confidence(properties):
-            print("Operation cancelled by user.")
-            sys.exit(0)
-    
-    # Load the Excel workbook (do not modify original template)
+        warnings.append(f"Validation failed: {validation.get('notes', 'Validation failed')}")
+
+    low_conf = [
+        f"{prop.get('address', 'Unknown')} ({prop.get('confidence', 0.0):.2f})"
+        for prop in properties
+        if prop.get("confidence", 1.0) < 0.85
+    ]
+    if low_conf:
+        warnings.append("Low confidence properties: " + "; ".join(low_conf))
+
+    if not warnings:
+        return
+
+    if force:
+        for warning in warnings:
+            print(f"⚠️  {warning}")
+        print("--force supplied; continuing non-interactively.")
+        return
+
+    print("\n⚠️  Review required before workbook generation:")
+    for warning in warnings:
+        print(f"  - {warning}")
+
+    if not prompt_yes_no("Do you want to continue"):
+        print("Operation cancelled by user.")
+        sys.exit(0)
+
+
+def write_json_to_excel(json_path: str, template_path: str, output_path: str, force: bool = False) -> None:
+    json_file = Path(json_path)
+    template_file = Path(template_path)
+    output_file = Path(output_path)
+
+    if not json_file.exists():
+        raise FileNotFoundError(f"Input JSON file not found: {json_path}")
+    if not template_file.exists():
+        raise FileNotFoundError(f"Template Excel file not found: {template_path}")
+
+    with json_file.open("r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    properties, validation = validate_payload(data)
+    confirm_warnings(properties, validation, force)
+
     print(f"Loading template: {template_path}")
     wb = openpyxl.load_workbook(template_path)
     ws = wb.active
-    
-    # Row mapping from JSON keys to Excel rows
-    row_mapping = {
-        "address": 6,
-        "months_in_service": 9,
-        "rents_received": 12,
-        "total_expenses": 13,
-        "insurance": 14,
-        "mortgage_interest": 15,
-        "taxes": 16,
-        "hoa_dues": 17,
-        "depreciation": 18,
-        "extraordinary_expense": 19
-    }
-    
-    # Rows with formulas that should NOT be overwritten
-    formula_rows = {20, 21, 22}
-    
-    # Write each property to the appropriate column
+
     print(f"Processing {len(properties)} property(ies)...")
     for prop in properties:
         property_index = prop.get("property_index", 1)
-        
-        # Get column letter for this property
         column = get_column_letter(property_index)
         print(f"  Writing Property {property_index} ({prop.get('address', 'N/A')[:30]}...) to column {column}")
-        
-        # Write each field to the appropriate row
-        for json_key, row in row_mapping.items():
-            # Skip formula rows (though they shouldn't be in row_mapping anyway)
-            if row in formula_rows:
+
+        for json_key, row in ROW_MAPPING.items():
+            if row in FORMULA_ROWS:
                 continue
-            
-            # Get value from property
             value = prop.get(json_key)
-            
-            # Only write if value is not None/null
             if value is not None:
-                cell = ws[f"{column}{row}"]
-                cell.value = value
-    
-    # Save to output path
+                ws[f"{column}{row}"].value = value
+
+    output_file.parent.mkdir(parents=True, exist_ok=True)
     print(f"Saving output to: {output_path}")
-    wb.save(output_path)
+    wb.save(output_file)
     print("✅ Successfully wrote data to Excel template!")
-    
-    # Summary
-    print(f"\nSummary:")
+    print("\nSummary:")
     print(f"  - Properties processed: {len(properties)}")
     print(f"  - Output file: {output_path}")
 
 
-def main():
-    """Main entry point."""
-    # Check command line arguments
-    if len(sys.argv) != 4:
-        print("Usage: python write_excel.py <input_json_path> <template_excel_path> <output_excel_path>")
-        sys.exit(1)
-    
-    json_path = sys.argv[1]
-    template_path = sys.argv[2]
-    output_path = sys.argv[3]
-    
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Write Schedule E JSON into an Excel template.")
+    parser.add_argument("input_json_path")
+    parser.add_argument("template_excel_path")
+    parser.add_argument("output_excel_path")
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Continue non-interactively despite validation or low-confidence warnings.",
+    )
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
     try:
-        write_json_to_excel(json_path, template_path, output_path)
+        write_json_to_excel(
+            args.input_json_path,
+            args.template_excel_path,
+            args.output_excel_path,
+            force=args.force,
+        )
     except FileNotFoundError as e:
         print(f"❌ File Error: {e}")
         sys.exit(1)
