@@ -1,9 +1,7 @@
 ---
-
-## name: schedule-e-rental-income
-
+name: schedule-e-rental-income
 description: Use this skill when the user wants to extract rental-property figures from IRS Schedule E and fill a rental income Excel worksheet while preserving the worksheet's existing formulas.
-
+---
 # Schedule E Rental Income
 
 Use this skill to move data from Schedule E into a rental income worksheet.
