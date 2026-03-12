@@ -21,9 +21,9 @@ When this skill is active, follow this workflow:
 
 5. Show the extracted values to the user for confirmation if accuracy is important or any value is uncertain.
 
-6. After confirmation, use `scripts/write_excel.py` to write values into the Excel template without overwriting formulas in calculated cells.
+6. After confirmation, use `scripts/write_excel.py` to write values into the `template.xlsx` without overwriting formulas in calculated cells.
 
-Read `extraction_prompt.txt` before asking a model to extract data.
+Read `extraction_prompt.md` before asking a model to extract data.
 Read `reference.md` before writing to Excel so the field mapping and edge-case rules are applied correctly.
 
 ## Data To Extract
