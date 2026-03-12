@@ -1,5 +1,5 @@
 ---
-name: schedule_e_rental_income_automator
+name: schedule-e-rental-income-automator
 description: Extract rental property numbers from IRS Schedule E tax forms and fill them into a rental income Excel worksheet while preserving existing formulas.
 ---
 
