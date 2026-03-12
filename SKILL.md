@@ -16,8 +16,9 @@ When this skill is active, you should:
 5. Ask for confirmation when any extracted value is unclear or confidence is low.
 6. Write the confirmed values into the Excel worksheet without overwriting formulas.
 
-Read `extraction_prompt.txt` for the exact extraction prompt and output schema.
+Read `extraction_prompt.md` for the exact extraction prompt and output schema.
 Read `reference.md` for worksheet mapping rules and business logic.
+Use `template.xlsx` as the Excel worksheet template.
 Use `scripts/write_excel.py` to write confirmed JSON values into the worksheet.
 
 Important rules:
