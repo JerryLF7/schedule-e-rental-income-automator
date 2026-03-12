@@ -15,6 +15,7 @@ When this skill is active, you should:
 4. Build a clean JSON object for the worksheet input.
 5. Ask for confirmation when any extracted value is unclear or confidence is low.
 6. Write the confirmed values into the Excel worksheet without overwriting formulas.
+7. Return the filled Excel file to the user.
 
 Read `extraction_prompt.md` for the exact extraction prompt and output schema.
 Read `reference.md` for worksheet mapping rules and business logic.
