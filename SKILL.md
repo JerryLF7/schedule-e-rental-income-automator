@@ -1,56 +1,67 @@
 ---
-name: schedule-e-rental-income-automator
-description: Extract rental property numbers from IRS Schedule E tax forms and fill them into a rental income Excel worksheet while preserving existing formulas.
----
+
+## name: schedule-e-rental-income
+
+description: Use this skill when the user wants to extract rental-property figures from IRS Schedule E and fill a rental income Excel worksheet while preserving the worksheet's existing formulas.
 
 # Schedule E Rental Income
 
-Use this skill when the user wants to read numbers from IRS Schedule E tax forms and enter them into a rental income Excel worksheet that already contains formulas.
+Use this skill to move data from Schedule E into a rental income worksheet.
 
-When this skill is active, you should:
+When this skill is active, follow this workflow:
 
-1. Read the Schedule E form from the provided PDF or image.
-2. Extract the required fields for each rental property.
-3. Convert fair rental days into months in service.
-4. Build a clean JSON object for the worksheet input.
-5. Ask for confirmation when any extracted value is unclear or confidence is low.
-6. Write the confirmed values into the Excel worksheet without overwriting formulas.
-7. Return the filled Excel file to the user.
+1. Read the Schedule E tax document and identify each rental property in order.
 
-Read `extraction_prompt.md` for the exact extraction prompt and output schema.
-Read `reference.md` for worksheet mapping rules and business logic.
-Use `template.xlsx` as the Excel worksheet template.
-Use `scripts/write_excel.py` to write confirmed JSON values into the worksheet.
+2. Extract the property address, fair rental days, rents received, total expenses, insurance, mortgage interest, taxes, depreciation, and any explicitly identified HOA dues or one-time extraordinary expense.
 
-Important rules:
-- Treat fair rental days of 365 or 366 as 12 months.
-- For any other fair rental days value, divide by 30.
-- If multiple rental properties are present, fill them into the worksheet from left to right in the same order they appear on Schedule E.
-- Do not guess values that are not clearly supported by the tax form.
-- Preserve all formulas, formatting, and labels in the Excel file.
+3. Convert fair rental days into months in service using these rules:
+   - `365` -> `12`
+   - `366` -> `12`
+   - any other value -> `fair_rental_days / 30`
 
-## Examples
+4. Build a structured JSON payload for all properties in worksheet order.
 
-- User uploads a Schedule E tax form and a rental income worksheet and asks to fill the worksheet automatically.
-- User provides a scanned Schedule E image and wants the rental numbers transferred into the Excel template.
-- User uploads a Schedule E form with multiple rental properties and wants each property filled into a separate rental unit column.
+5. Show the extracted values to the user for confirmation if accuracy is important or any value is uncertain.
+
+6. After confirmation, use `scripts/write_excel.py` to write values into the Excel template without overwriting formulas in calculated cells.
+
+Read `extraction_prompt.txt` before asking a model to extract data.
+Read `reference.md` before writing to Excel so the field mapping and edge-case rules are applied correctly.
+
+## Data To Extract
+
+For each Schedule E property, extract:
+
+- property address
+- fair rental days
+- months in service
+- rents received
+- total expenses
+- insurance
+- mortgage interest paid to banks or others
+- taxes
+- depreciation expense or depletion
+- HOA dues, only if explicitly identifiable
+- one-time extraordinary expense, only if explicitly supported by the form or accompanying evidence
+
+If multiple properties are present, keep the A, B, C order from Schedule E and fill worksheet rental-unit columns left to right in the same order.
+
+## Output Shape
+
+Create a JSON object with a `properties` array. Each property should contain the extracted source values plus the derived `months_in_service` value.
+
+If a field is missing or not clearly supported by the document, set it to `null` instead of guessing.
 
 ## Guidelines
 
-- Extract values directly using the model's document understanding capability; do not rely on Python OCR logic in `write_excel.py`.
-- Use structured JSON as the handoff format between extraction and Excel writing.
-- Extract at least these fields for each property:
-  - property_address
-  - fair_rental_days
-  - months_in_service
-  - rents_received
-  - total_expenses
-  - insurance
-  - mortgage_interest
-  - taxes
-  - depreciation
-- If a field is missing, unclear, or not explicitly shown, set it to `null` and flag it for review.
-- Only populate HOA dues if the expense is specifically identified as HOA or homeowners' association dues.
-- Only populate extraordinary expense if there is explicit support in the tax form or supporting evidence.
-- Keep numeric fields numeric in JSON and Excel output.
-- If the number of properties exceeds the available rental-unit columns in the worksheet, stop and report the issue instead of truncating data.
+- Preserve property order across extraction and worksheet fill.
+- Do not infer HOA dues from generic "other" expenses unless the document clearly identifies them.
+- Do not infer extraordinary expense unless there is explicit evidence.
+- Treat worksheet formulas as read-only; only write into user-input cells.
+- If confidence is low, ask for review before writing the workbook.
+
+## Examples
+
+- User uploads a Schedule E PDF and a rental income worksheet and asks to populate the worksheet.
+- User asks to extract Schedule E rental-property numbers into JSON first, then write them into Excel.
+- User provides a multi-property Schedule E and wants each property mapped to a separate rental-unit column.
