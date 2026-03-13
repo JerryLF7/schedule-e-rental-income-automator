@@ -1,73 +1,145 @@
-# Reference Guide
+# Schedule E Rental Income Reference
 
-## Schedule E → Rental Income Worksheet: Cell Mapping
+This reference defines the worksheet mapping, calculation rules, and completion requirements for the Schedule E rental-income workflow.
 
-### Column Assignment
+The final deliverable for this skill is a completed Excel workbook returned to the user in chat as an attached file whenever the environment supports file attachment.
 
-Each property maps to one column in the Excel worksheet, starting from column F:
+A generated local path alone is not considered complete output if the file can be attached in the chat interface.
 
-| Property Order | Column |
-| :------------- | :----- |
-| Property 1     | F      |
-| Property 2     | G      |
-| Property 3     | H      |
-| Property 4     | I      |
-| ...            | ...    |
+## 1. Overall Goal
 
-### Row Mapping
+Convert extracted Schedule E rental-property values into worksheet inputs and produce a completed `.xlsx` file based on `template.xlsx`.
 
-| JSON Field              | Excel Row | Worksheet Label                      | Notes                                 |
-| :---------------------- | :-------- | :----------------------------------- | :------------------------------------ |
-| `address`               | 6         | Rental Unit (address header)         | Text value                            |
-| `months_in_service`     | 9         | Step 1 Result — months in service    | Numeric, 1 decimal place              |
-| `rents_received`        | 12        | A1 — Enter total rents received      | From Schedule E Line 3                |
-| `total_expenses`        | 13        | A2 — Subtract total expenses         | From Schedule E Line 20               |
-| `insurance`             | 14        | A3 — Add back insurance expense      | From Schedule E Line 9                |
-| `mortgage_interest`     | 15        | A4 — Add back mortgage interest paid | From Schedule E Line 12               |
-| `taxes`                 | 16        | A5 — Add back tax expense            | From Schedule E Line 16               |
-| `hoa_dues`              | 17        | A6 — Add back HOA dues               | From Schedule E Line 17 (conditional) |
-| `depreciation`          | 18        | A7 — Add back depreciation           | From Schedule E Line 18               |
-| `extraordinary_expense` | 19        | A8 — Add back extraordinary expense  | From Schedule E Line 8 (conditional)  |
+The workflow is complete only when:
+1. the workbook has been generated successfully, and
+2. the generated `.xlsx` file has been sent back to the user in chat as an attachment, unless attachment is unavailable in the current environment
 
-### Formula Cells — DO NOT OVERWRITE
+## 2. Property Ordering
 
-| Row | Label                                                |
-| :-- | :--------------------------------------------------- |
-| 20  | Equals adjusted rental income (formula)              |
-| 21  | A9 — Divide by months (formula)                      |
-| 22  | Step 2A Result — Monthly qualifying income (formula) |
+If Schedule E contains multiple rental properties:
+- preserve the property order exactly as shown on the form
+- map property A to the first worksheet rental-unit column
+- map property B to the next worksheet rental-unit column
+- map property C to the next worksheet rental-unit column
+- continue left to right
 
----
+Do not reorder properties.
 
-## Edge Cases
+## 3. Step 1 Rule: Months In Service
 
-### A6 — HOA Dues
+Use Fair Rental Days to compute months in service as follows:
+- `365` -> `12`
+- `366` -> `12`
+- any other numeric value -> `fair_rental_days / 30`
 
-- **Only fill** if Schedule E explicitly identifies the expense as "HOA", "homeowners association dues", or "condominium association fees".
-- If Line 17 contains other utilities or miscellaneous expenses, leave A6 as `null`.
-- Reason: Fannie Mae guidelines require HOA dues to be specifically identified on Schedule E.
+If Fair Rental Days is missing and there is no contrary evidence, treat the property as `12` months in service.
 
-### A8 — Extraordinary Expense
+## 4. Worksheet Mapping
 
-- **Only fill** if there is documented evidence of a one-time extraordinary expense (e.g., casualty loss, major one-time repair).
-- Must be clearly distinguishable from recurring operating expenses.
-- Reason: Fannie Mae requires evidence of the one-time nature before adding back.
+Use the skill's bundled `template.xlsx` as the default workbook unless the user explicitly provides a different worksheet.
 
-### Fair Rental Days
+For each property, write values into one worksheet column.
 
-- 365 or 366 → 12 months (full year)
-- Blank / not reported → 12 months (per Fannie Mae guidelines)
-- Any other value → round(days / 30, 1)
+Default rental-unit columns:
+- property 1 -> column `F`
+- property 2 -> column `G`
+- property 3 -> column `H`
+- continue left to right as needed within template capacity
 
-### Multiple Schedule E Pages
+### Field-to-row mapping
 
-- Schedule E supports 3 properties (A/B/C) per page.
-- If taxpayer has more than 3 properties, there will be additional Schedule E pages.
-- Process all pages; assign `property_index` sequentially across pages.
-- Map to columns F, G, H, I, J, ... in order.
+- `property_address` -> row `6`
+- `months_in_service` -> row `9`
+- `rents_received` -> row `12`
+- `total_expenses` -> row `13`
+- `insurance` -> row `14`
+- `mortgage_interest` -> row `15`
+- `taxes` -> row `16`
+- `hoa_dues` -> row `17`
+- `depreciation` -> row `18`
+- `extraordinary_expense` -> row `19`
 
-### Negative Values
+## 5. Formula Protection
 
-- Negative values on Schedule E appear in parentheses, e.g., `(500)`.
-- Write as negative numbers in Excel: `-500`.
-- This can occur for Line 21 (net income/loss) but should not occur for the fields we extract.
+Do not overwrite calculated cells or formula cells.
+
+In particular, do not write into result rows that are already formula-driven in the worksheet, including:
+- adjusted rental income result rows
+- divide-by-month rows
+- monthly qualifying income result rows
+
+Only write into the designated user-input cells.
+
+Preserve:
+- formulas
+- formatting
+- borders
+- merged cells
+- labels
+- workbook structure
+
+## 6. Data Interpretation Rules
+
+### Rents received
+Map from Schedule E line 3.
+
+### Total expenses
+Map from Schedule E line 20.
+
+### Insurance
+Map from Schedule E line 9.
+
+### Mortgage interest
+Map from Schedule E line 12.
+
+### Taxes
+Map from Schedule E line 16.
+
+### Depreciation
+Map from Schedule E line 18.
+
+### HOA dues
+Populate only if the expense is explicitly identified as homeowners' association dues, HOA dues, or a clearly equivalent label.
+
+Do not infer HOA dues from generic "other" expenses.
+
+### Extraordinary expense
+Populate only if the document explicitly supports a one-time extraordinary expense such as casualty loss or another clearly documented one-time add-back item.
+
+Do not infer extraordinary expense when evidence is missing.
+
+## 7. Missing Or Unclear Values
+
+If a required field is unreadable, missing, or materially ambiguous:
+- set the structured value to `null`
+- request review before writing the workbook if the missing value prevents reliable completion
+
+Do not guess unsupported values.
+
+## 8. When To Pause
+
+Pause and ask the user for confirmation only if:
+- an important field is missing or unclear
+- confidence is low
+- the extracted values are contradictory
+- the number of properties exceeds worksheet capacity
+- the workbook cannot be generated successfully
+
+Do not pause merely to ask whether the user wants the Excel file after the workbook has already been created.
+
+## 9. Output Behavior
+
+If extraction is sufficiently reliable and workbook generation succeeds:
+- immediately return the completed `.xlsx` file to the user in chat
+- do not stop at JSON
+- do not stop at a local file path
+- do not ask whether the user wants the generated file
+- do not treat "saved to ..." as the final answer
+
+If the environment supports chat attachments, the assistant should attach the file in the same completion turn.
+
+A short confirmation message is fine, for example:
+- "Done — attached is the completed Excel worksheet."
+- "Done — I filled the worksheet and attached the `.xlsx` file."
+
+Do not replace the file attachment with a text-only summary when the file is available.
