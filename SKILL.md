@@ -1,5 +1,5 @@
 ---
-name: schedule-e-rental-income
+name: schedule-e-rental-income-automator
 description: Use this skill when the user wants to extract rental-property figures from IRS Schedule E and fill a rental income Excel worksheet while preserving the worksheet's existing formulas.
 ---
 
@@ -65,6 +65,11 @@ The default final deliverable for this skill is:
 
 A filesystem path such as `out/property_1_filled.xlsx` is not sufficient by itself when the environment supports sending files in chat.
 
+Treat attachment delivery as mandatory when available:
+- send the actual workbook file as an attachment in chat
+- do not treat a local path, `MEDIA:` string, or `saved to ...` message as equivalent to file delivery
+- do not place the local file path in the chat body as a substitute for attachment upload
+
 If the workbook is successfully created and chat file attachment is available, attach the file immediately without waiting for an additional user message.
 
 Only return a path instead of a file if:
@@ -81,6 +86,8 @@ Only return a path instead of a file if:
 - If confidence is low, ask for review before writing the workbook.
 - Treat `template.xlsx` bundled with the skill as the default worksheet template unless the user explicitly provides another one.
 - After generating the workbook, return the actual `.xlsx` file in chat instead of only describing it.
+- Use a real chat attachment upload for the workbook whenever the environment supports it.
+- Do not send the workbook's local filesystem path, a `MEDIA:` placeholder, or a plain text pointer as the final output when attachment upload is available.
 - Do not ask the user whether they want the generated Excel file after it has already been created; send it automatically.
 - Do not consider the task complete merely because the file exists on disk.
 
