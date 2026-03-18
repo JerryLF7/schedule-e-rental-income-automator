@@ -95,6 +95,9 @@ Only return a path instead of a file if:
 - Do not send the workbook's local filesystem path, a `MEDIA:` placeholder, or a plain text pointer as the final output when attachment upload is available.
 - Do not ask the user whether they want the generated Excel file after it has already been created; send it automatically.
 - Do not consider the task complete merely because the file exists on disk.
+- After generating the workbook, deliver it using the runtime’s actual chat file-attachment mechanism.
+- In OpenClaw chat environments, do not merely print the local filesystem path. Trigger real attachment delivery in the same final response whenever available.
+- If attachment upload fails, explain the failure briefly and only then provide the local path as fallback.
 
 ## Examples
 
