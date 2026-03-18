@@ -28,7 +28,7 @@ When this skill is active, follow this workflow:
 
 7. After the workbook is generated, attach the generated `.xlsx` file directly in the chat response and present that file as the final deliverable.
 
-8. Do not stop after printing JSON, after reporting extracted values, after summarizing rental income, or after reporting an output path. The task is not complete until the completed Excel file has been returned to the user in chat, unless file attachment is impossible in the current environment or the user explicitly requested text-only output.
+8. Do not stop after printing JSON, after reporting extracted values, after summarizing rental income, after asking what to do next, or after reporting an output path. The task is not complete until the completed Excel file has been returned to the user in chat, unless file attachment is impossible in the current environment or the user explicitly requested text-only output.
 
 Read `extraction_prompt.md` before asking a model to extract data.
 Read `reference.md` before writing to Excel so the field mapping and edge-case rules are applied correctly.
@@ -71,10 +71,15 @@ A filesystem path such as `out/property_1_filled.xlsx` is not sufficient by itse
 
 Treat attachment delivery as mandatory when available:
 - send the actual workbook file as an attachment in chat
-- do not treat a local path, `MEDIA:` string, or `saved to ...` message as equivalent to file delivery
+- do not treat a local path, `MEDIA:` string, extracted-value summary, or `saved to ...` message as equivalent to file delivery
 - do not place the local file path in the chat body as a substitute for attachment upload
+- do not ask the user what to do next after the workbook is ready
+- do not ask the user whether they want the generated Excel file after it has already been created
+- do not present extracted values for review unless confidence is low or the user explicitly asked to review the extracted data before workbook delivery
 
 If the workbook is successfully created and chat file attachment is available, attach the file immediately without waiting for an additional user message.
+
+Any response that only contains extracted values, JSON, a local path, a `MEDIA:` line, or a question about next steps is an incomplete result.
 
 Only return a path instead of a file if:
 - the environment cannot attach files in chat
@@ -92,8 +97,10 @@ Only return a path instead of a file if:
 - Treat `template.xlsx` bundled with the skill as the default worksheet template unless the user explicitly provides another one.
 - After generating the workbook, return the actual `.xlsx` file in chat instead of only describing it.
 - Use a real chat attachment upload for the workbook whenever the environment supports it.
-- Do not send the workbook's local filesystem path, a `MEDIA:` placeholder, or a plain text pointer as the final output when attachment upload is available.
+- In OpenClaw environments where tool-based file sending is available, use the actual file-send mechanism rather than relying on plain response text.
+- Do not send the workbook's local filesystem path, a `MEDIA:` placeholder, extracted field values, or a plain text pointer as the final output when attachment upload is available.
 - Do not ask the user whether they want the generated Excel file after it has already been created; send it automatically.
+- Do not ask what to do next after the workbook has been created.
 - Do not consider the task complete merely because the file exists on disk.
 - After generating the workbook, deliver it using the runtime’s actual chat file-attachment mechanism.
 - In OpenClaw chat environments, do not merely print the local filesystem path. Trigger real attachment delivery in the same final response whenever available.
