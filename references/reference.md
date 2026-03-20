@@ -105,6 +105,8 @@ Populate only if the expense is explicitly identified as homeowners' association
 
 Do not infer HOA dues from generic "other" expenses.
 
+When a tax package contains multiple Schedule E pages, process all Schedule E pages together and include every rental property shown across those pages in worksheet order. If a supporting statement explicitly identifies HOA for a property, include that amount in the HOA field for that property.
+
 ### Extraordinary expense
 Populate only if the document explicitly supports a one-time extraordinary expense such as casualty loss or another clearly documented one-time add-back item.
 
