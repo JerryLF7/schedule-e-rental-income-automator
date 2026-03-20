@@ -50,14 +50,14 @@ Default rental-unit columns:
 
 ### Field-to-row mapping
 
-- `property_address` -> row `6`
-- `months_in_service` -> row `9`
-- `rents_received` -> row `12`
-- `total_expenses` -> row `13`
-- `insurance` -> row `14`
-- `mortgage_interest` -> row `15`
-- `taxes` -> row `16`
-- `hoa_dues` -> row `17`
+- `property_address` -> row `5`
+- `months_in_service` -> row `8`
+- `rents_received` -> row `11`
+- `total_expenses` -> row `12`
+- `insurance` -> row `13`
+- `mortgage_interest` -> row `14`
+- `taxes` -> row `15`
+- `hoa_dues` -> row `16`
 - `depreciation` -> row `18`
 - `extraordinary_expense` -> row `19`
 
