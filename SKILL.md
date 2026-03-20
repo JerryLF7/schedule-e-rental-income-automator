@@ -19,7 +19,7 @@ When this skill is active, follow this workflow:
    - any other value -> `fair_rental_days / 30`
 4. Build a structured JSON payload for all properties in worksheet order.
 5. If any required value is uncertain, missing, contradictory, or low-confidence, ask the user for confirmation before writing the workbook.
-6. Otherwise, use `scripts/write_excel.py` to write values into `template.xlsx` without overwriting formulas in calculated cells.
+6. Otherwise, use `scripts/write_excel.py` to write values into `Rental_Income_Worksheet_Template.xlsx` without overwriting formulas in calculated cells.
 7. After the workbook is generated, attach the generated `.xlsx` file directly in the chat response and present that file as the final deliverable.
 8. Do not stop after printing JSON, after reporting extracted values, after summarizing rental income, after asking what to do next, or after reporting an output path. The task is not complete until the completed Excel file has been returned to the user in chat, unless file attachment is impossible in the current environment or the user explicitly requested text-only output.
 
@@ -112,7 +112,7 @@ Only return a path instead of a file if:
 - Do not infer extraordinary expense unless there is explicit evidence.
 - Treat worksheet formulas as read-only; only write into user-input cells.
 - If confidence is low, ask for review before writing the workbook.
-- Treat `template.xlsx` bundled with the skill as the default worksheet template unless the user explicitly provides another one.
+- Treat `Rental_Income_Worksheet_Template.xlsx` bundled with the skill as the default worksheet template unless the user explicitly provides another one.
 - After generating the workbook, return the actual `.xlsx` file in chat instead of only describing it.
 - Use a real chat attachment upload for the workbook whenever the environment supports it.
 - Do not send the workbook's local filesystem path, a `MEDIA:` placeholder, extracted field values, or a plain text pointer as the final output when attachment upload is available.

@@ -10,7 +10,7 @@ A generated local path alone is not considered complete output if the file can b
 
 ## 1. Overall Goal
 
-Convert extracted Schedule E rental-property values into worksheet inputs and produce a completed `.xlsx` file based on `template.xlsx`.
+Convert extracted Schedule E rental-property values into worksheet inputs and produce a completed `.xlsx` file based on `Rental_Income_Worksheet_Template.xlsx`.
 
 The workflow is complete only when:
 1. the workbook has been generated successfully, and
@@ -38,7 +38,7 @@ If Fair Rental Days is missing and there is no contrary evidence, treat the prop
 
 ## 4. Worksheet Mapping
 
-Use the skill's bundled `template.xlsx` as the default workbook unless the user explicitly provides a different worksheet.
+Use the skill's bundled `Rental_Income_Worksheet_Template.xlsx` as the default workbook unless the user explicitly provides a different worksheet.
 
 For each property, write values into one worksheet column.
 
