@@ -2,6 +2,8 @@
 
 This reference defines the worksheet mapping, calculation rules, and completion requirements for the Schedule E rental-income workflow.
 
+Use this file only for durable, reusable **general rules**. Put narrow, example-driven, or document-specific learnings in `cases.md` instead.
+
 The final deliverable for this skill is a completed Excel workbook returned to the user in chat as an attached file whenever the environment supports file attachment.
 
 A generated local path alone is not considered complete output if the file can be attached in the chat interface.

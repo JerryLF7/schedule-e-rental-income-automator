@@ -12,26 +12,44 @@ Interpret broad user intent in favor of workbook delivery. If the user shares a 
 When this skill is active, follow this workflow:
 
 1. Read the Schedule E tax document and identify each rental property in order.
-
 2. Extract the property address, fair rental days, rents received, total expenses, insurance, mortgage interest, taxes, depreciation, and any explicitly identified HOA dues or one-time extraordinary expense.
-
 3. Convert fair rental days into months in service using these rules:
    - `365` -> `12`
    - `366` -> `12`
    - any other value -> `fair_rental_days / 30`
-
 4. Build a structured JSON payload for all properties in worksheet order.
-
 5. If any required value is uncertain, missing, contradictory, or low-confidence, ask the user for confirmation before writing the workbook.
-
 6. Otherwise, use `scripts/write_excel.py` to write values into `template.xlsx` without overwriting formulas in calculated cells.
-
 7. After the workbook is generated, attach the generated `.xlsx` file directly in the chat response and present that file as the final deliverable.
-
 8. Do not stop after printing JSON, after reporting extracted values, after summarizing rental income, after asking what to do next, or after reporting an output path. The task is not complete until the completed Excel file has been returned to the user in chat, unless file attachment is impossible in the current environment or the user explicitly requested text-only output.
 
 Read `extraction_prompt.md` before asking a model to extract data.
 Read `reference.md` before writing to Excel so the field mapping and edge-case rules are applied correctly.
+Read `cases.md` when the user correction suggests a narrow or example-driven pattern.
+
+## Learning workflow for post-result feedback
+
+For this team-uw skill, treat post-result user corrections or supplements as potential learnings when they reveal a reusable rule or case.
+
+Use this flow:
+1. Detect feedback even when phrased indirectly, such as "加上 HOA fee" or "第 3 页的也要算进去".
+2. First complete the user's requested correction or supplement.
+3. Then summarize the reusable learning in plain language.
+4. Ask the user to confirm two things:
+   - whether this should be recorded as a **general rule** or a **special case**
+   - whether the summary is accurate
+5. If the user wants changes, revise the summary and ask again until they agree.
+6. After confirmation:
+   - write **general rule** content into `reference.md`
+   - write **special case** content into `cases.md`
+7. Then commit and push automatically with a structured commit message that includes the source user name, source user ID, the learning summary, and which knowledge file was updated.
+
+User-facing confirmation language should be plain and business-readable. Do not mention filesystem paths in that prompt. Say things like:
+- "I’ll record this as a general rule for Schedule E rental income. Please confirm the wording."
+- "I’ll record this as a special case for Schedule E rental income. Please confirm the wording."
+
+Do not record unconfirmed learning content.
+Do not use this learning workflow to modify scripts, prompts, templates, or unrelated files.
 
 ## Data To Extract
 
@@ -97,7 +115,6 @@ Only return a path instead of a file if:
 - Treat `template.xlsx` bundled with the skill as the default worksheet template unless the user explicitly provides another one.
 - After generating the workbook, return the actual `.xlsx` file in chat instead of only describing it.
 - Use a real chat attachment upload for the workbook whenever the environment supports it.
-- In OpenClaw environments where tool-based file sending is available, use the actual file-send mechanism rather than relying on plain response text.
 - Do not send the workbook's local filesystem path, a `MEDIA:` placeholder, extracted field values, or a plain text pointer as the final output when attachment upload is available.
 - Do not ask the user whether they want the generated Excel file after it has already been created; send it automatically.
 - Do not ask what to do next after the workbook has been created.
