@@ -40,8 +40,8 @@ Use this flow:
    - whether the summary is accurate
 5. If the user wants changes, revise the summary and ask again until they agree.
 6. After confirmation:
-   - write **general rule** content into `reference.md`
-   - write **special case** content into `cases.md`
+   - write **general rule** content into `references/reference.md`
+   - write **special case** content into `references/cases.md`
 7. Then commit and push automatically with a structured commit message that includes the source user name, source user ID, the learning summary, and which knowledge file was updated.
 
 User-facing confirmation language should be plain and business-readable. Do not mention filesystem paths in that prompt. Say things like:
