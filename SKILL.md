@@ -24,8 +24,8 @@ When this skill is active, follow this workflow:
 8. Do not stop after printing JSON, after reporting extracted values, after summarizing rental income, after asking what to do next, or after reporting an output path. The task is not complete until the completed Excel file has been returned to the user in chat, unless file attachment is impossible in the current environment or the user explicitly requested text-only output.
 
 Read `extraction_prompt.md` before asking a model to extract data.
-Read `reference.md` before writing to Excel so the field mapping and edge-case rules are applied correctly.
-Read `cases.md` when the user correction suggests a narrow or example-driven pattern.
+Read `references/reference.md` before writing to Excel so the field mapping and edge-case rules are applied correctly.
+Read `references/cases.md` when the user correction suggests a narrow or example-driven pattern.
 
 ## Learning workflow for post-result feedback
 
